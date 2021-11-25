@@ -11,6 +11,8 @@
 
 	Output file will be save with the same name as input file, but with the
 	.root format.
+	
+	Converter was tested with HepMC Version 2.06.09, IO_GenEvent format
 */
 
 void HEPMC_to_ROOT(int filenum)
