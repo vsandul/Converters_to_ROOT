@@ -1,28 +1,54 @@
 /*
-	HEPMC_to_ROOT parser
-	Version 1.0 (only final particles info)
+	HEPMC_to_ROOT_finals parser
+	Only final particles info
 	Vladislav Sandul, 2021
 	vladislav.sandul@cern.ch
 
 	To run the script, one have to modify filename_path and filename_body
 	according to their needs, then type in terminal
-		$ root "HEPMC_to_ROOT.cxx(FILENUM)"
+		$ root "HEPMC_to_ROOT_finals.cxx(FILENUM)"
 	where FILENUM is a number of the file.
 
 	Output file will be save with the same name as input file, but with the
 	.root format.
-	
+
 	Converter was tested with HepMC Version 2.06.09, IO_GenEvent format
 */
 
-void HEPMC_to_ROOT(int filenum)
+#include <map>
+
+int NuclPIDtoCharge (int& pid);
+int PIDtoCharge (int& pid, map<int, int>& pid_ch_map);
+
+map<int, int> pid_charge_map;
+
+void HEPMC_to_ROOT_finals(int filenum)
 {
-	TString filename_path = "./";
+	TString filename_path = "../../HepMC_convertor/";
 	string filename_body = Form("crmc_epos199_300651974_A197Z79_p_%d", filenum);
+
 	TString input_filename = Form("%s.hepmc", filename_body.c_str());
 	TString output_filename = Form("%s.root", filename_body.c_str());
 
-	auto fullpath = 	filename_path + input_filename;
+		// to read pair "PID - Charge" for "particles.txt"
+		ifstream fParticlesFile("particles.txt");
+		string part_string; stringstream part_streamstring;
+		string name; int part_pid; int part_charge;
+		while(getline(fParticlesFile, part_string)){
+			if (part_string[0] == '#')
+				continue;
+
+			part_streamstring.str(part_string);
+			part_streamstring >> name >> part_pid >> part_charge;
+			pid_charge_map[part_pid] = part_charge;
+
+			part_streamstring.clear();
+			part_streamstring.str(std::string());
+		}
+		fParticlesFile.close();
+
+
+	auto fullpath = filename_path + input_filename;
 	ifstream fInputFile(fullpath);
 	cout << "Input file: " << fullpath << endl;
 	if(!fInputFile){
@@ -38,7 +64,7 @@ void HEPMC_to_ROOT(int filenum)
 		const int MAX_N_TRACKS = 10000;
 		int ntracks ;
 		float b ;
-		//int charge[MAX_N_TRACKS];
+		int charge[MAX_N_TRACKS];
 		int pdg[MAX_N_TRACKS];
 		float px[MAX_N_TRACKS];
 		float py[MAX_N_TRACKS];
@@ -48,7 +74,7 @@ void HEPMC_to_ROOT(int filenum)
 
 	tree_final -> Branch("nTracks",  &ntracks , "nTracks/I");
 	tree_final -> Branch("Impact",   &b ,				"Impact/F");
-	//tree_final -> Branch("Charge",   charge  ,	"Charge[nTracks]/I");
+	tree_final -> Branch("Charge",   charge  ,	"Charge[nTracks]/I");
 	tree_final -> Branch("PDGID",    pdg    ,		"PDGID[nTracks]/I");
 	tree_final -> Branch("Px",       px      , 	"Px[nTracks]/F");
 	tree_final -> Branch("Py",     	 py      ,	"Py[nTracks]/F");
@@ -121,11 +147,10 @@ void HEPMC_to_ROOT(int filenum)
 				return;
 			}
 			if (n_event_counter%1 == 0){
-				cout << "processing  " << n_event_counter << " event ..."<< "\r";
-				return;
+			//	cout << "processing  " << n_event_counter << " event ..."<< "\r";
 			}
 			cout.flush();
-			n_event_counter++;//= nevt_;
+			n_event_counter++;
 			int final_tracks_counter = 0;
 			ss.clear();
 			ss.str(std::string());
@@ -174,14 +199,14 @@ void HEPMC_to_ROOT(int filenum)
 								return;
 							}
 							if (status_ == 1){
-																//cout << s << endl;
-								final_tracks_counter++;
 								pdg[final_tracks_counter] = pdgid_;
 								px[final_tracks_counter] = px_;
 								py[final_tracks_counter] = py_;
 								pz[final_tracks_counter] = pz_;
 								p0[final_tracks_counter] = p0_;
 								m[final_tracks_counter] = m_;
+								charge[final_tracks_counter] = PIDtoCharge(pdgid_, pid_charge_map);
+								final_tracks_counter++;
 							}
 							ss.clear();
 							ss.str(std::string());
@@ -190,7 +215,6 @@ void HEPMC_to_ROOT(int filenum)
 
 			ntracks = final_tracks_counter;
 			tree_final -> Fill();
-			cout << ntracks << endl;
 
 		}
 
@@ -204,4 +228,25 @@ void HEPMC_to_ROOT(int filenum)
 	canv_info->Write();
 	tree_final -> Write();  // If in your output file you have no tree - uncomment this line!
 
+}
+
+
+int NuclPIDtoCharge (int& pid){
+	if (abs(pid) < 1000000001 || abs(pid) > 1100000000 ){
+		cout << "Wrong PID " << pid << ". It is not a nuclei. Return '-10000' value." << endl;
+		return -10000;
+	} else {
+		return (pid%10000000)/10000;
+	}
+}
+
+int PIDtoCharge (int& pid, map<int, int>& pid_ch_map){
+	if (abs(pid) > 1000000000)
+		return NuclPIDtoCharge(pid);
+	else {
+		if (pid > 0)
+			return pid_charge_map.at(pid);
+		else
+			return -pid_charge_map.at(-pid);
+	}
 }
