@@ -93,7 +93,8 @@ void HEPMC_to_ROOT_finals(int filenum)
 
 		// Heavy-ion string variable
 		int ncoll_hard_ = 0, npart_proj_ = 0., npart_targ_ = 0, ncoll_ = 0,
-				spec_neutr_ = 0, spec_prot_ = 0, n_nwounded_col_ = 0, nwounded_n_col_ = 0;
+				spec_neutr_ = 0, spec_prot_ = 0, n_nwounded_col_ = 0,
+				nwounded_n_col_ = 0, nwounded_nwounded_col_ = 0;
 		float impact_= 0., event_plane_angle_ = 0., eccentricity_ = 0, sigma_inel_NN_ = 0;
 
 		// Vertex string variables
@@ -147,7 +148,7 @@ void HEPMC_to_ROOT_finals(int filenum)
 				return;
 			}
 			if (n_event_counter%1 == 0){
-			//	cout << "processing  " << n_event_counter << " event ..."<< "\r";
+				cout << "processing  " << n_event_counter << " event ..."<< "\r";
 			}
 			cout.flush();
 			n_event_counter++;
@@ -162,7 +163,8 @@ void HEPMC_to_ROOT_finals(int filenum)
 			getline(fInputFile, s);
 			ss.str(s);
 			ss >> format_char >> ncoll_hard_ >> npart_proj_ >> npart_targ_ >> ncoll_ >>
-			 			spec_neutr_ >> spec_prot_ >> n_nwounded_col_ >> nwounded_n_col_ >>
+			 			spec_neutr_ >> spec_prot_ >> n_nwounded_col_ >>
+						nwounded_n_col_ >> nwounded_nwounded_col_ >>
 						impact_ >> event_plane_angle_ >> eccentricity_ >> sigma_inel_NN_;
 			if (format_char != 'H'){
 				cout << "Error! format_char != 'H'" << endl;
